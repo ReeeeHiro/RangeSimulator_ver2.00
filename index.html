@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>電動三輪車 走行距離 & 必要SOC 推定ツール</title>
+<style>
+  body{font-family:system-ui,sans-serif;margin:0;padding:2rem;background:#f5f7fa;}
+  h1{margin-top:0;}
+  section{background:#fff;padding:1.5rem 2rem;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);margin-bottom:2rem;}
+  .result{font-size:2rem;font-weight:700;margin-top:1rem;color:#009691;line-height:1.4;}
+  .subtitle{font-size:0.9rem;color:#555;}
+  .warn{font-size:0.9rem;}
+  label{display:block;font-weight:600;margin-bottom:0.4rem;}
+  input[type="range"]{width:100%;}
+  input[type="number"]{width:140px;padding:0.4rem;font-size:1rem;}
+</style>
+</head>
+<body>
+
+<h1>電動三輪車 簡易シミュレーター</h1>
+
+<!-- ① 走行距離推定アプリ -->
+<section>
+  <h2>① 走行距離推定</h2>
+  <p class="subtitle">バッテリー残量（SOC%）からこれから走れる距離を概算します<br>
+     最低走行可能 SOC を 30%（= バッテリー切れ）と定義しています。</p>
+  <label for="socInput">バッテリー容量（SOC %）</label>
+  <input id="socInput" type="range" min="30" max="100" value="100" step="1" style="direction:rtl;">
+  <div id="socValue">100 %</div>
+  <div class="result" id="distanceResult">-- km</div>
+</section>
+
+<!-- ② 必要SOC推定アプリ -->
+<section>
+  <h2>② 必要 SOC 推定</h2>
+  <p class="subtitle">目的の走行距離[km]から必要なバッテリー容量(SOC)を概算します</p>
+  <label for="distanceInput">走行距離（km）</label>
+  <input id="distanceInput" type="number" min="0" max="300" step="0.1" placeholder="例: 10">
+  <div class="result" id="socNeededResult">---</div>
+</section>
+
+<script>
+// ----- 近似式 (SOC = a·d² + b·d + c) -----
+const a = -1.1067989e-05,
+      b = -0.352860925,
+      c = 99.8381012;
+const SOC_MIN = 30; // [%]
+const WARNING_HTML =
+  "※バッテリー保護機能により、25〜30 %で走行不能、バッテリー切れになります。<br>十分にお気をつけください。";
+
+function socAtDist(d){ return a*d*d + b*d + c; }
+function distAtSoc(s){
+  const disc = b*b - 4*a*(c - s);
+  if(disc < 0) return NaN;
+  const r1 = (-b - Math.sqrt(disc)) / (2*a);
+  const r2 = (-b + Math.sqrt(disc)) / (2*a);
+  return Math.max(r1, r2);
+}
+const MAX_RANGE = distAtSoc(SOC_MIN); // ≈196.7 km
+
+// --- ① SOC→残距離 ---
+const socSlider   = document.getElementById('socInput');
+const socValueLbl = document.getElementById('socValue');
+const distLbl     = document.getElementById('distanceResult');
+
+function updateDistance(){
+  const soc = Number(socSlider.value);
+  socValueLbl.textContent = `${soc.toFixed(0)} %`;
+  if(soc <= SOC_MIN){ distLbl.textContent = '0 km'; return; }
+  const travelled = distAtSoc(soc);
+  const remain    = MAX_RANGE - travelled;
+  distLbl.textContent = `約 ${remain.toFixed(1)} km`;
+}
+socSlider.addEventListener('input', updateDistance);
+updateDistance();
+
+// --- ② 距離→必要SOC ---
+const distInput  = document.getElementById('distanceInput');
+const socNeedLbl = document.getElementById('socNeededResult');
+
+function updateSocNeeded(){
+  const km = Number(distInput.value);
+  if(isNaN(km) || km < 0){ socNeedLbl.textContent = '---'; return; }
+
+  if(km > MAX_RANGE){
+    socNeedLbl.innerHTML = `※ 走行可能距離の上限は約195km<br><span class="warn">(距離は車両やバッテリーの個体差、重量の増減によって前後します)</span>`;
+    return;
+  }
+
+  const socAfter  = socAtDist(km);
+  const consumed  = 100 - socAfter;
+  const socTotal  = consumed + SOC_MIN;
+  const display   = socTotal > 100 ? '> 100' : `= ${socTotal.toFixed(1)}`;
+
+  socNeedLbl.innerHTML = `必要バッテリー容量(SOC) ${display} %<br><span class="warn">${WARNING_HTML}</span>`;
+}
+
+distInput.addEventListener('input', updateSocNeeded);
+updateSocNeeded();
+</script>
+
+</body>
+</html>
