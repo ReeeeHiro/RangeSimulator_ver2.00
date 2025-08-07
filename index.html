@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>hop on電動三輪車 電費シミュレーター</title>
+<title>hop on 走行距離シミュレーター</title>
 <style>
   /* ---------- Theme Colors ---------- */
   :root {
@@ -95,7 +95,7 @@
 
     <!-- ① 走行距離推定アプリ -->
     <section>
-      <h2>① 走行距離推定</h2>
+      <h2>走行できる距離計算</h2>
       <p class="subtitle">バッテリー残量（SOC%）からこれから走れる距離を概算します<br>
         最低走行可能 SOC を 30%（= バッテリー切れ）と定義しています。</p>
       <label for="socInput">バッテリー容量（SOC %）</label>
@@ -106,7 +106,7 @@
 
     <!-- ② 必要SOC推定アプリ -->
     <section>
-      <h2>② 必要 SOC 推定</h2>
+      <h2>必要なバッテリー容量％（SOC %）</h2>
       <p class="subtitle">目的の走行距離[km]から必要なバッテリー容量(SOC)を概算します</p>
       <label for="distanceInput">走行距離（km）</label>
       <input id="distanceInput" type="number" min="0" max="300" step="0.1" placeholder="例: 10" />
